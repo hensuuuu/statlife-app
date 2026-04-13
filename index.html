@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>내 스탯은?</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#000}
+  button{font-family:inherit}
+  input{font-family:inherit}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:#111}
+  ::-webkit-scrollbar-thumb{background:#374151;border-radius:99px}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .spin{animation:spin 1s linear infinite;display:inline-block}
+  .fadein{animation:fadeIn 0.35s ease both}
+  .btn-hover:hover{filter:brightness(1.1);transform:scale(1.01)}
+  .btn-hover:active{transform:scale(0.97)}
+  .opt-btn:hover{border-color:#60A5FA!important;background:#1a2535!important}
+  .opt-btn:active{transform:scale(0.98)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const QUESTIONS = [
+  { q: "주말 오후, 당신은?", opts: [
+    { t: "🎨 뭔가 만들거나 창작 중", s: { T:25, L:10 } },
+    { t: "📚 책이나 영상으로 공부", s: { I:25, L:5 } },
+    { t: "🏋️ 운동하거나 야외 활동", s: { V:20, C:10 } },
+    { t: "☕ 친구들과 카페에서 수다", s: { C:25, L:5 } },
+  ]},
+  { q: "직장·학교에서 나는?", opts: [
+    { t: "💡 새 아이디어 내는 사람", s: { T:20, I:10 } },
+    { t: "📊 분석하고 꼼꼼히 정리", s: { I:20, S:10 } },
+    { t: "🤝 팀 분위기를 살리는 사람", s: { C:20, S:10 } },
+    { t: "⚡ 혼자 빠르게 처리", s: { S:25, V:5 } },
+  ]},
+  { q: "돈에 대한 나의 태도는?", opts: [
+    { t: "💰 꼼꼼하게 저축하고 투자", s: { G:30, I:5 } },
+    { t: "🛍️ 원할 때 쓰고 즐기는 타입", s: { L:15, C:10 } },
+    { t: "📈 수익 창출에 관심 많음", s: { G:25, S:10 } },
+    { t: "💸 돈은 좀 무관심한 편", s: { T:15, L:10 } },
+  ]},
+  { q: "나의 관심사·취미 스타일은?", opts: [
+    { t: "🎯 하나에 깊이 파고드는 편", s: { T:20, I:15 } },
+    { t: "🌈 여러 분야를 폭넓게 탐구", s: { L:30, C:5 } },
+    { t: "💻 기술·트렌드 팔로잉", s: { I:20, S:10 } },
+    { t: "🎭 예술·음악·문화 위주", s: { T:25, L:10 } },
+  ]},
+  { q: "건강 관리를 어떻게 하나요?", opts: [
+    { t: "🏃 규칙적으로 운동함", s: { V:30, S:5 } },
+    { t: "🥗 먹는 거 신경 쓰는 편", s: { V:20, I:5 } },
+    { t: "😴 잠이 최고야 (숙면 중시)", s: { V:15, L:5 } },
+    { t: "🍕 건강은 좀 신경 못 씀", s: { L:10, C:5 } },
+  ]},
+  { q: "사람들 사이에서 나는?", opts: [
+    { t: "🌟 분위기 메이커", s: { C:30, L:5 } },
+    { t: "🤗 조용히 들어주는 지원자", s: { C:15, I:10, T:5 } },
+    { t: "📣 의견 표현을 잘 함", s: { C:20, S:10 } },
+    { t: "🦅 혼자가 편한 자유인", s: { T:20, L:10 } },
+  ]},
+  { q: "일·프로젝트 앞에서 나는?", opts: [
+    { t: "🎯 계획 세우고 꼼꼼히 실행", s: { S:25, I:10 } },
+    { t: "⚡ 일단 시작하고 수정", s: { S:20, T:10 } },
+    { t: "💭 오래 고민하다 완벽하게", s: { I:25, T:10 } },
+    { t: "🤝 팀이랑 함께 방향 잡음", s: { C:20, S:10 } },
+  ]},
+  { q: "나의 가장 큰 강점은?", opts: [
+    { t: "✨ 독창적인 아이디어", s: { T:30, L:5 } },
+    { t: "🧠 빠른 이해력과 논리", s: { I:30, S:5 } },
+    { t: "💪 실행력과 추진력", s: { S:30, V:5 } },
+    { t: "❤️ 공감 능력과 친화력", s: { C:30, L:5 } },
+  ]},
+];
+
+const SC = {
+  T:{ name:"재능",  eng:"TALENT", color:"#FFD700", bg:"#2a2000", icon:"⭐" },
+  I:{ name:"지능",  eng:"INT",    color:"#60A5FA", bg:"#0a1628", icon:"🧠" },
+  G:{ name:"재력",  eng:"GOLD",   color:"#34D399", bg:"#0a1f18", icon:"💰" },
+  L:{ name:"관심사",eng:"LORE",   color:"#A78BFA", bg:"#150a28", icon:"📚" },
+  S:{ name:"역량",  eng:"SKILL",  color:"#F87171", bg:"#1f0a0a", icon:"⚔️" },
+  V:{ name:"체력",  eng:"VIT",    color:"#FB923C", bg:"#1f0e00", icon:"💪" },
+  C:{ name:"사교성",eng:"CHA",    color:"#F472B6", bg:"#1f0814", icon:"🌟" },
+};
+const KEYS = ["T","I","G","L","S","V","C"];
+
+const CLASSES = [
+  { name:"🎨 아티스트",    cond:s=>s.T>=68,              desc:"세상을 창작으로 물들이는 자" },
+  { name:"🔬 분석가",      cond:s=>s.I>=68&&s.S>=55,     desc:"데이터로 세상을 읽는 현인" },
+  { name:"💼 CEO형",       cond:s=>s.G>=62&&s.S>=62,     desc:"자원과 실행력의 완벽한 조화" },
+  { name:"🌐 네트워커",    cond:s=>s.C>=68,              desc:"사람이 곧 힘이다" },
+  { name:"🧙 탐구자",      cond:s=>s.I>=62&&s.L>=62,     desc:"끝없이 배우는 지식의 현자" },
+  { name:"⚡ 실행가",      cond:s=>s.S>=72,              desc:"생각보다 행동, 빠르게 돌파" },
+  { name:"🏆 올라운더",    cond:s=>KEYS.every(k=>s[k]>=44), desc:"균형 잡힌 만능 캐릭터" },
+  { name:"🌟 자유로운 영혼",cond:s=>s.L>=62&&s.T>=55,   desc:"나만의 길을 가는 개성파" },
+  { name:"⚔️ 투사형",      cond:s=>s.V>=62&&s.S>=58,    desc:"체력과 실행력으로 돌파" },
+];
+const DEF_CLASS = { name:"🎲 잠재력의 소유자", desc:"아직 발휘 안 된 무한한 가능성!" };
+
+function getCls(s){ return CLASSES.find(c=>c.cond(s))||DEF_CLASS; }
+function getLv(s){ return Math.min(99,Math.max(1,Math.round(KEYS.reduce((a,k)=>a+s[k],0)/KEYS.length/1.8))); }
+
+function StatBar({k, value, anim}){
+  const c=SC[k], pct=Math.min(100,Math.max(0,value));
+  return (
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+        <span style={{color:c.color,fontSize:12,fontWeight:700}}>
+          {c.icon} <span style={{fontFamily:"monospace"}}>{c.eng}</span>
+          <span style={{color:"#6b7280",fontWeight:400,marginLeft:4}}>{c.name}</span>
+        </span>
+        <span style={{color:c.color,fontFamily:"monospace",fontWeight:900,fontSize:13}}>{Math.round(pct)}</span>
+      </div>
+      <div style={{height:6,borderRadius:99,background:"#1f2937",overflow:"hidden"}}>
+        <div style={{
+          height:"100%",borderRadius:99,background:c.color,
+          boxShadow:`0 0 8px ${c.color}88`,
+          width:anim?`${pct}%`:"0%",
+          transition:"width 1.3s cubic-bezier(0.4,0,0.2,1)"
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+function RadarChart({stats}){
+  const sz=152,cx=76,cy=76,r=52,n=KEYS.length;
+  const ang=i=>(Math.PI*2*i)/n-Math.PI/2;
+  const pts=KEYS.map((k,i)=>[cx+r*(stats[k]/100)*Math.cos(ang(i)),cy+r*(stats[k]/100)*Math.sin(ang(i))]);
+  const poly=pts.map(p=>p.join(",")).join(" ");
+  return (
+    <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>
+      {[.25,.5,.75,1].map((l,li)=>(
+        <polygon key={li} points={KEYS.map((_,i)=>[cx+r*l*Math.cos(ang(i)),cy+r*l*Math.sin(ang(i))].join(",")).join(" ")}
+          fill="none" stroke="#374151" strokeWidth="0.5"/>
+      ))}
+      {KEYS.map((_,i)=><line key={i} x1={cx} y1={cy} x2={cx+r*Math.cos(ang(i))} y2={cy+r*Math.sin(ang(i))} stroke="#374151" strokeWidth="0.5"/>)}
+      <polygon points={poly} fill="#60A5FA1a" stroke="#60A5FA" strokeWidth="1.5"/>
+      {pts.map(([x,y],i)=><circle key={i} cx={x} cy={y} r={3} fill={SC[KEYS[i]].color}/>)}
+      {KEYS.map((k,i)=>{
+        const lx=cx+(r+15)*Math.cos(ang(i)),ly=cy+(r+15)*Math.sin(ang(i));
+        return <text key={k} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" fontSize="7" fill={SC[k].color} fontWeight="bold">{SC[k].eng}</text>;
+      })}
+    </svg>
+  );
+}
+
+const INIT={T:28,I:28,G:28,L:28,S:28,V:28,C:28};
+const MSGS=["⚙️ 스탯 데이터 수집 중...","🧠 지능 수치 분석 중...","⭐ 재능 지수 계산 중...","💰 재력 인덱스 측정 중...","⚔️ 역량 레벨 산출 중...","🌟 캐릭터 생성 완료!"];
+
+function App(){
+  const [step,setStep]=useState("start");
+  const [name,setName]=useState("");
+  const [qIdx,setQIdx]=useState(0);
+  const [stats,setStats]=useState({...INIT});
+  const [final,setFinal]=useState(null);
+  const [anim,setAnim]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const [cIdx,setCIdx]=useState(0);
+
+  useEffect(()=>{
+    if(step!=="calc") return;
+    let i=0;
+    const t=setInterval(()=>{
+      i++; setCIdx(i);
+      if(i>=MSGS.length-1){
+        clearInterval(t);
+        setTimeout(()=>{setStep("result");setTimeout(()=>setAnim(true),200);},500);
+      }
+    },380);
+    return()=>clearInterval(t);
+  },[step]);
+
+  function answer(opt){
+    const next={...stats};
+    Object.entries(opt.s).forEach(([k,v])=>{next[k]=Math.min(100,Math.max(10,(next[k]||0)+v));});
+    setStats(next);
+    if(qIdx<QUESTIONS.length-1) setQIdx(qIdx+1);
+    else{setFinal(next);setStep("calc");}
+  }
+
+  function restart(){
+    setStep("start");setName("");setQIdx(0);
+    setStats({...INIT});setFinal(null);setAnim(false);setCopied(false);setCIdx(0);
+  }
+
+  const BG={background:"radial-gradient(ellipse at 50% 20%, #0d1a2e 0%, #000 100%)",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"};
+
+  /* START */
+  if(step==="start") return (
+    <div style={BG} className="fadein">
+      <div style={{textAlign:"center",maxWidth:320,width:"100%"}}>
+        <div style={{fontSize:64,filter:"drop-shadow(0 0 24px #60A5FA)",marginBottom:12}}>⚔️</div>
+        <h1 style={{fontSize:52,fontWeight:900,color:"#fff",letterSpacing:-2,lineHeight:1,marginBottom:6,textShadow:"0 0 40px #60A5FA,0 0 80px #60A5FA55"}}>내 스탯은?</h1>
+        <p style={{color:"#60A5FA",fontSize:10,fontWeight:700,letterSpacing:5,marginBottom:8,textTransform:"uppercase"}}>Real Life Stat System</p>
+        <p style={{color:"#9ca3af",fontSize:14,marginBottom:28,lineHeight:1.6}}>게임 캐릭터처럼<br/>나의 실제 능력치를 확인해보세요</p>
+        <div style={{background:"#0d1117",border:"1px solid #1f2937",borderRadius:16,padding:"16px 20px",marginBottom:20,textAlign:"left"}}>
+          <p style={{color:"#4b5563",fontSize:10,marginBottom:10,letterSpacing:3,textTransform:"uppercase"}}>측정 스탯</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 16px"}}>
+            {KEYS.map(k=><div key={k} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,padding:"1px 0"}}>
+              <span>{SC[k].icon}</span>
+              <span style={{color:SC[k].color,fontFamily:"monospace",fontWeight:700}}>{SC[k].eng}</span>
+              <span style={{color:"#6b7280"}}>{SC[k].name}</span>
+            </div>)}
+          </div>
+        </div>
+        <button className="btn-hover" onClick={()=>setStep("name")}
+          style={{width:"100%",padding:"17px",borderRadius:16,fontWeight:900,fontSize:17,color:"#000",background:"linear-gradient(135deg,#60A5FA,#A78BFA)",boxShadow:"0 0 30px #60A5FA44",border:"none",cursor:"pointer",transition:"all 0.2s"}}>
+          스탯 측정 시작 →
+        </button>
+        <p style={{color:"#374151",fontSize:11,marginTop:10}}>⏱ 약 2분 · 8개 질문 · 무료</p>
+      </div>
+    </div>
+  );
+
+  /* NAME */
+  if(step==="name") return (
+    <div style={{...BG,background:"#030712"}} className="fadein">
+      <div style={{width:"100%",maxWidth:320,textAlign:"center"}}>
+        <div style={{fontSize:52,marginBottom:14}}>🧙</div>
+        <h2 style={{fontSize:24,fontWeight:900,color:"#fff",marginBottom:6}}>캐릭터 이름</h2>
+        <p style={{color:"#6b7280",fontSize:13,marginBottom:22}}>당신의 이름을 입력하세요</p>
+        <input
+          style={{width:"100%",background:"#111827",border:"2px solid #374151",borderRadius:14,padding:"14px",color:"#fff",fontSize:20,fontWeight:700,textAlign:"center",outline:"none",marginBottom:14,transition:"border-color 0.2s"}}
+          placeholder="홍길동" value={name}
+          onChange={e=>setName(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&name.trim()&&setStep("quiz")}
+          onFocus={e=>e.target.style.borderColor="#60A5FA"}
+          onBlur={e=>e.target.style.borderColor="#374151"}
+          autoFocus
+        />
+        <button className="btn-hover" onClick={()=>name.trim()&&setStep("quiz")}
+          style={{width:"100%",padding:"15px",borderRadius:14,fontWeight:900,fontSize:17,color:"#000",
+            background:name.trim()?"linear-gradient(135deg,#60A5FA,#A78BFA)":"#1f2937",
+            border:"none",cursor:name.trim()?"pointer":"default",transition:"all 0.3s"}}>
+          시작 →
+        </button>
+      </div>
+    </div>
+  );
+
+  /* QUIZ */
+  if(step==="quiz"){
+    const q=QUESTIONS[qIdx];
+    const pct=(qIdx/QUESTIONS.length)*100;
+    return (
+      <div style={{background:"radial-gradient(ellipse at top,#0d1a2e,#000)",minHeight:"100vh",display:"flex",flexDirection:"column",padding:"20px"}} className="fadein">
+        <div style={{maxWidth:380,margin:"0 auto",width:"100%",flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{paddingTop:12,marginBottom:24}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+              <span style={{color:"#60A5FA",fontSize:12,fontWeight:600}}>스탯 분석 중</span>
+              <span style={{color:"#6b7280",fontSize:12,fontFamily:"monospace"}}>{qIdx+1} / {QUESTIONS.length}</span>
+            </div>
+            <div style={{height:4,background:"#1f2937",borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:"linear-gradient(90deg,#60A5FA,#A78BFA)",transition:"width 0.4s"}}/>
+            </div>
+          </div>
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <div style={{fontSize:44,marginBottom:12}}>🤔</div>
+              <h2 style={{fontSize:21,fontWeight:900,color:"#fff",lineHeight:1.4}}>{q.q}</h2>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {q.opts.map((opt,i)=>(
+                <button key={i} className="opt-btn" onClick={()=>answer(opt)}
+                  style={{textAlign:"left",background:"#0d1117",border:"1px solid #1f2937",borderRadius:16,padding:"15px 18px",color:"#e5e7eb",fontSize:14,fontWeight:500,cursor:"pointer",transition:"all 0.15s",lineHeight:1.4}}>
+                  {opt.t}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* CALC */
+  if(step==="calc") return (
+    <div style={{background:"#030712",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px"}} className="fadein">
+      <div style={{textAlign:"center",maxWidth:300,width:"100%"}}>
+        <div className="spin" style={{fontSize:48,marginBottom:16,display:"inline-block"}}>⚙️</div>
+        <p style={{color:"#fff",fontWeight:900,fontSize:20,marginBottom:6}}>능력치 분석 중...</p>
+        <p style={{color:"#60A5FA",fontSize:13,fontFamily:"monospace",marginBottom:24,minHeight:20}}>{MSGS[Math.min(cIdx,MSGS.length-1)]}</p>
+        <div style={{display:"flex",flexDirection:"column",gap:9}}>
+          {KEYS.map((k,i)=>{const c=SC[k];return(
+            <div key={k} style={{display:"flex",alignItems:"center",gap:10,opacity:i<=cIdx?1:0.15,transition:"opacity 0.4s"}}>
+              <span style={{fontSize:15,width:20}}>{c.icon}</span>
+              <div style={{flex:1,height:4,background:"#1f2937",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",borderRadius:99,background:c.color,width:i<=cIdx?`${final?.[k]||55}%`:"0%",transition:"width 0.8s"}}/>
+              </div>
+              <span style={{color:c.color,fontFamily:"monospace",fontWeight:700,fontSize:12,width:22,textAlign:"right"}}>
+                {i<=cIdx?Math.round(final?.[k]||55):"??"}
+              </span>
+            </div>
+          );})}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* RESULT */
+  if(step==="result"&&final){
+    const cls=getCls(final),lv=getLv(final);
+    const sorted=[...KEYS].sort((a,b)=>final[b]-final[a]);
+    const topK=sorted[0],topC=SC[topK];
+
+    function share(){
+      const lines=KEYS.map(k=>`${SC[k].icon} ${SC[k].eng} ${Math.round(final[k])}`);
+      const txt=[`🎮 내 스탯은?`,``,`👤 ${name}  LV.${lv}`,`🏷 클래스: ${cls.name}`,``,...lines,``,`"${cls.desc}"`,``,`나도 내 스탯 확인하기 👉 [링크]`].join("\n");
+      navigator.clipboard.writeText(txt).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});
+    }
+
+    return (
+      <div style={{background:"radial-gradient(ellipse at top,#0a1628,#000)",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",padding:"28px 16px"}} className="fadein">
+        <div style={{width:"100%",maxWidth:370}}>
+          <p style={{textAlign:"center",color:"#6b7280",fontSize:11,marginBottom:12,letterSpacing:3,textTransform:"uppercase"}}>✨ 캐릭터 카드 생성 완료</p>
+
+          {/* 카드 */}
+          <div style={{borderRadius:22,overflow:"hidden",border:`2px solid ${topC.color}`,background:"linear-gradient(160deg,#0d1117,#111827)",boxShadow:`0 0 50px ${topC.color}44,0 0 100px ${topC.color}18`,marginBottom:14}}>
+
+            {/* 헤더 */}
+            <div style={{padding:"20px 20px 15px",borderBottom:"1px solid #1f2937"}}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <span style={{fontSize:11,fontFamily:"monospace",fontWeight:900,padding:"3px 9px",borderRadius:7,background:topC.bg,color:topC.color,border:`1px solid ${topC.color}55`}}>LV.{lv}</span>
+                    <span style={{color:"#6b7280",fontSize:10,letterSpacing:2}}>REAL STAT CARD</span>
+                  </div>
+                  <h3 style={{fontSize:28,fontWeight:900,color:"#fff",marginBottom:10,letterSpacing:-0.5}}>{name}</h3>
+                  <div style={{display:"inline-flex",alignItems:"center",padding:"5px 13px",borderRadius:99,fontSize:12,fontWeight:700,background:`${topC.color}18`,color:topC.color,border:`1px solid ${topC.color}44`}}>
+                    {cls.name}
+                  </div>
+                </div>
+                <RadarChart stats={final}/>
+              </div>
+            </div>
+
+            {/* 스탯 바 */}
+            <div style={{padding:"16px 20px 8px"}}>
+              {KEYS.map(k=><StatBar key={k} k={k} value={final[k]} anim={anim}/>)}
+            </div>
+
+            {/* TOP 3 */}
+            <div style={{padding:"0 20px 14px"}}>
+              <div style={{display:"flex",gap:8}}>
+                {sorted.slice(0,3).map((k,i)=>{const c=SC[k];return(
+                  <div key={k} style={{flex:1,borderRadius:12,padding:"9px 4px",textAlign:"center",background:c.bg,border:`1px solid ${c.color}33`}}>
+                    <div style={{fontSize:16,marginBottom:2}}>{c.icon}</div>
+                    <div style={{fontFamily:"monospace",fontWeight:900,fontSize:16,color:c.color}}>{Math.round(final[k])}</div>
+                    <div style={{fontSize:9,color:"#9ca3af",marginTop:1}}>{c.name}</div>
+                    {i===0&&<div style={{fontSize:8,color:c.color,marginTop:2,opacity:0.7}}>★ TOP</div>}
+                  </div>
+                );})}
+              </div>
+            </div>
+
+            {/* 설명 */}
+            <div style={{padding:"0 20px 20px"}}>
+              <div style={{borderRadius:13,padding:"11px 15px",textAlign:"center",background:"#080c14",border:"1px solid #1f2937"}}>
+                <p style={{color:"#9ca3af",fontSize:12,fontStyle:"italic",lineHeight:1.5}}>"{cls.desc}"</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 버튼들 */}
+          <button className="btn-hover" onClick={share}
+            style={{width:"100%",padding:"15px",borderRadius:16,fontWeight:900,fontSize:15,color:"#000",border:"none",cursor:"pointer",marginBottom:10,
+              background:copied?"linear-gradient(135deg,#34D399,#10B981)":"linear-gradient(135deg,#FFD700,#FFA500)",
+              boxShadow:copied?"0 0 20px #34D39955":"0 0 20px #FFD70055",transition:"all 0.3s"}}>
+            {copied?"✅ 클립보드에 복사됐어요!":"📤 내 스탯 공유하기"}
+          </button>
+          <button className="btn-hover" onClick={restart}
+            style={{width:"100%",padding:"12px",borderRadius:16,fontWeight:700,fontSize:13,color:"#9ca3af",background:"transparent",border:"1px solid #374151",cursor:"pointer",transition:"all 0.2s"}}>
+            🔄 다시 측정하기
+          </button>
+          <p style={{textAlign:"center",color:"#4b5563",fontSize:11,marginTop:14}}>친구에게도 공유해서 스탯 비교해보세요 👀</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
